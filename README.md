@@ -1,6 +1,4 @@
-# BPKH HR Chatbot System
-
-í´– **Enterprise-Grade HR Management Bot with AI-Powered Features**
+ğŸ¤– **Enterprise-Grade HR Management Bot with AI-Powered Features**
 
 ![Version](https://img.shields.io/badge/version-5.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
@@ -9,26 +7,26 @@
 ## âœ¨ Features
 
 ### Core HR Modules
-- í³ **Smart Attendance** - Clock in/out with automatic tracking
-- í²° **Payroll Management** - Salary slips, history, insights
-- í¿–ï¸ **Leave Management** - Request, track, balance monitoring
+- ğŸ“ **Smart Attendance** - Clock in/out with automatic tracking
+- ğŸ’° **Payroll Management** - Salary slips, history, insights
+- ğŸ–ï¸ **Leave Management** - Request, track, balance monitoring
 - â° **Overtime Tracking** - Hours & compensation calculation
 
 ### Advanced Features
-- í´– **AI Assistant** - Natural language HR queries (GROQ-powered)
-- í¾® **Gamification** - Points, levels (Bronzeâ†’Diamond), achievements
-- í³Š **Performance Analytics** - 360Â° scoring, KPIs, feedback
-- í³ˆ **Career Path** - Growth timeline, readiness score
+- ğŸ¤– **AI Assistant** - Natural language HR queries (GROQ-powered)
+- ğŸ® **Gamification** - Points, levels (Bronzeâ†’Diamond), achievements
+- ğŸ“Š **Performance Analytics** - 360Â° scoring, KPIs, feedback
+- ğŸ“ˆ **Career Path** - Growth timeline, readiness score
 
 ### Power Tools
-- í²³ **Expense Tracker** - Submit & track reimbursements
-- ï¿½ï¿½ **Team Collaboration** - Projects, tasks, documents
-- í³š **Learning Hub** - Courses, certifications, progress
-- í¿ƒ **Wellness Center** - Health tracking, programs
-- í³„ **Document Vault** - Secure encrypted storage
-- í¾¯ **Goal Tracker** - Objectives & KPIs monitoring
+- ğŸ’³ **Expense Tracker** - Submit & track reimbursements
+- ğŸ¤ **Team Collaboration** - Projects, tasks, documents
+- ğŸ“š **Learning Hub** - Courses, certifications, progress
+- ğŸƒ **Wellness Center** - Health tracking, programs
+- ğŸ“„ **Document Vault** - Secure encrypted storage
+- ğŸ¯ **Goal Tracker** - Objectives & KPIs monitoring
 
-## íº€ Quick Start
+## ğŸš€ Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -53,7 +51,7 @@ nano .env  # Edit with your credentials
 python bot.py
 ```
 
-## í´ Environment Variables
+## ğŸ” Environment Variables
 
 Create `.env` file with these variables:
 ```env
@@ -74,7 +72,7 @@ LOG_LEVEL=INFO
 - **Telegram Token**: [@BotFather](https://t.me/botfather)
 - **GROQ API Key**: [console.groq.com](https://console.groq.com)
 
-## í³¦ Dependencies
+## ğŸ“¦ Dependencies
 ```
 python-telegram-bot==21.0.1
 python-dotenv==1.0.0
@@ -86,7 +84,7 @@ And more...
 
 See `requirements.txt` for complete list.
 
-## ï¿½ï¿½ Deployment
+## ğŸŒ Deployment
 
 ### Railway (Recommended - Free Tier Available)
 
@@ -109,7 +107,7 @@ python bot.py
 
 Use systemd/supervisor for production.
 
-## í³ Project Structure
+## ğŸ“ Project Structure
 ```
 BPKH-HR-Chatbot/
 â”œâ”€â”€ bot.py                 # Main bot application
@@ -128,7 +126,7 @@ BPKH-HR-Chatbot/
 â””â”€â”€ README.md          # This file
 ```
 
-## í¾¯ Usage
+## ğŸ¯ Usage
 
 ### Start Bot
 ```
@@ -144,14 +142,14 @@ BPKH-HR-Chatbot/
 - **Analytics**: Performance dashboard
 - **Profile**: View employee information
 
-## í±¨â€í²» Developer
+## ğŸ‘¨â€ğŸ’» Developer
 
 **MS Hadianto**
-- í³§ Email: mshadianto@outlook.com
-- í°™ GitHub: [@mshadianto](https://github.com/mshadianto)
-- í²¼ LinkedIn: [MS Hadianto](https://linkedin.com/in/mshadianto)
+- ğŸ“§ Email: mshadianto@outlook.com
+- ğŸ™ GitHub: [@mshadianto](https://github.com/mshadianto)
+- ğŸ’¼ LinkedIn: [MS Hadianto](https://linkedin.com/in/mshadianto)
 
-## í´’ Security
+## ğŸ”’ Security
 
 - âœ… Environment variables for secrets
 - âœ… GitHub secret scanning enabled
@@ -159,19 +157,19 @@ BPKH-HR-Chatbot/
 - âœ… Encrypted database connections
 - âŒ Never commit `.env` file
 
-## í³„ License
+## ğŸ“„ License
 
 **Proprietary** - BPKH Internal Use Only
 
 Unauthorized copying, distribution, or use is strictly prohibited.
 
-## í¶˜ Support
+## ğŸ†˜ Support
 
 For issues or questions:
-- í³§ Email: mshadianto@outlook.com
-- í°› GitHub Issues: [Report Issue](https://github.com/mshadianto/BPKH-HR-Chatbot/issues)
+- ğŸ“§ Email: mshadianto@outlook.com
+- ğŸ› GitHub Issues: [Report Issue](https://github.com/mshadianto/BPKH-HR-Chatbot/issues)
 
-## í¹ Acknowledgments
+## ğŸ™ Acknowledgments
 
 Built with:
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
@@ -184,3 +182,4 @@ Built with:
 **Made with â¤ï¸ for BPKH**
 
 *Enterprise HR Management Made Simple*
+EOF
