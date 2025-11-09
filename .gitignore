@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# CREDENTIALS - NEVER COMMIT!
+.env
+config/settings.py
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+bpkh.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backups
+*.backup
+*.bak
+*.old

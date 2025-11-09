@@ -1,0 +1,346 @@
+'''Telegram HR Bot BPKH - Full Featured.'''
+import logging
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application, CommandHandler, CallbackQueryHandler, 
+    ContextTypes, MessageHandler, filters
+)
+from dotenv import load_dotenv
+from config.settings import TELEGRAM_BOT_TOKEN, LOG_LEVEL
+from models import init_db, SessionLocal, Employee, Payroll, Cuti, Absensi
+from datetime import datetime
+from utils.advanced_rag import advanced_rag
+
+load_dotenv()
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=getattr(logging, LOG_LEVEL),
+)
+logger = logging.getLogger(__name__)
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    db = SessionLocal()
+    
+    try:
+        employee = db.query(Employee).filter(
+            Employee.telegram_user_id == user.id
+        ).first()
+        
+        if not employee:
+            await update.message.reply_text(
+                f"Halo {user.first_name}!\n\n"
+                "Untuk menggunakan bot BPKH, ketik /register"
+            )
+            return
+        
+        await show_main_menu(update, context, employee)
+    finally:
+        db.close()
+
+async def register_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    db = SessionLocal()
+    
+    try:
+        employee = db.query(Employee).filter(
+            Employee.telegram_user_id == user.id
+        ).first()
+        
+        if employee:
+            await update.message.reply_text(
+                f"Anda sudah terdaftar sebagai {employee.nama}!\n\n"
+                "Ketik /start"
+            )
+            return
+        
+        unclaimed = db.query(Employee).filter(
+            Employee.telegram_user_id >= 100000
+        ).first()
+        
+        if not unclaimed:
+            await update.message.reply_text("Tidak ada data karyawan tersedia.")
+            return
+        
+        unclaimed.telegram_user_id = user.id
+        db.commit()
+        
+        await update.message.reply_text(
+            f"Registrasi berhasil!\n\n"
+            f"Nama: {unclaimed.nama}\n"
+            f"NIK: {unclaimed.nik}\n"
+            f"Jabatan: {unclaimed.jabatan}\n\n"
+            "Ketik /start"
+        )
+    finally:
+        db.close()
+
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, employee):
+    keyboard = [
+        [
+            InlineKeyboardButton("Payroll", callback_data='payroll'),
+            InlineKeyboardButton("Absensi", callback_data='absensi_menu')
+        ],
+        [
+            InlineKeyboardButton("Cuti", callback_data='cuti_menu'),
+            InlineKeyboardButton("Info", callback_data='info')
+        ],
+        [
+            InlineKeyboardButton("Tanya AI", callback_data='ai_mode')
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    text = f"SISTEM HR BPKH\n\n"
+    text += f"Halo, {employee.nama}!\n"
+    text += f"Jabatan: {employee.jabatan}\n"
+    text += f"Departemen: {employee.departemen}\n\n"
+    text += "Pilih menu:"
+    
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(text=text, reply_markup=reply_markup)
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    db = SessionLocal()
+    
+    try:
+        employee = db.query(Employee).filter(
+            Employee.telegram_user_id == user.id
+        ).first()
+        
+        if not employee:
+            await query.edit_message_text("Anda belum terdaftar. Ketik /register")
+            return
+        
+        if query.data == 'main_menu':
+            await show_main_menu(update, context, employee)
+        
+        elif query.data == 'payroll':
+            current_month = datetime.now().strftime('%Y-%m')
+            payroll = db.query(Payroll).filter(
+                Payroll.employee_id == employee.id,
+                Payroll.periode == current_month
+            ).first()
+            
+            if payroll:
+                text = f"PAYROLL - {payroll.periode}\n\n"
+                text += f"Gaji Pokok: Rp {payroll.gaji_pokok:,.0f}\n"
+                text += f"Tunjangan: Rp {payroll.tunjangan:,.0f}\n"
+                text += f"Bonus: Rp {payroll.bonus:,.0f}\n"
+                text += f"Potongan: Rp {payroll.potongan:,.0f}\n"
+                text += f"-------------------\n"
+                text += f"TOTAL: Rp {payroll.total_gaji:,.0f}\n\n"
+                text += f"Status: {payroll.status.upper()}"
+            else:
+                text = "Belum ada data payroll."
+            
+            keyboard = [[InlineKeyboardButton("Kembali", callback_data='main_menu')]]
+            await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(keyboard))
+        
+        elif query.data == 'absensi_menu':
+            keyboard = [
+                [InlineKeyboardButton("Clock In", callback_data='clock_in')],
+                [InlineKeyboardButton("Clock Out", callback_data='clock_out')],
+                [InlineKeyboardButton("Riwayat", callback_data='absensi_history')],
+                [InlineKeyboardButton("Kembali", callback_data='main_menu')]
+            ]
+            await query.edit_message_text("MENU ABSENSI\n\nPilih opsi:", reply_markup=InlineKeyboardMarkup(keyboard))
+        
+        elif query.data == 'clock_in':
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            existing = db.query(Absensi).filter(
+                Absensi.employee_id == employee.id,
+                Absensi.tanggal == today
+            ).first()
+            
+            if existing and existing.waktu_masuk:
+                await query.edit_message_text(f"Sudah clock in!\n\nWaktu: {existing.waktu_masuk.strftime('%H:%M:%S')}")
+                return
+            
+            now = datetime.now()
+            
+            if existing:
+                existing.waktu_masuk = now
+                existing.status = 'hadir'
+            else:
+                absensi = Absensi(
+                    employee_id=employee.id,
+                    tanggal=today,
+                    waktu_masuk=now,
+                    status='hadir'
+                )
+                db.add(absensi)
+            
+            db.commit()
+            
+            keyboard = [[InlineKeyboardButton("Kembali", callback_data='main_menu')]]
+            await query.edit_message_text(
+                f"CLOCK IN BERHASIL!\n\n"
+                f"Waktu: {now.strftime('%H:%M:%S')}\n"
+                f"Tanggal: {now.strftime('%d/%m/%Y')}\n\n"
+                "Selamat bekerja!",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        
+        elif query.data == 'clock_out':
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            absensi = db.query(Absensi).filter(
+                Absensi.employee_id == employee.id,
+                Absensi.tanggal == today
+            ).first()
+            
+            if not absensi or not absensi.waktu_masuk:
+                await query.edit_message_text("Belum clock in!\nSilakan clock in dulu.")
+                return
+            
+            if absensi.waktu_keluar:
+                await query.edit_message_text(f"Sudah clock out!\n\nWaktu: {absensi.waktu_keluar.strftime('%H:%M:%S')}")
+                return
+            
+            now = datetime.now()
+            absensi.waktu_keluar = now
+            jam_kerja = (now - absensi.waktu_masuk).total_seconds() / 3600
+            absensi.jam_kerja = round(jam_kerja, 2)
+            db.commit()
+            
+            keyboard = [[InlineKeyboardButton("Kembali", callback_data='main_menu')]]
+            await query.edit_message_text(
+                f"CLOCK OUT BERHASIL!\n\n"
+                f"Masuk: {absensi.waktu_masuk.strftime('%H:%M')}\n"
+                f"Keluar: {now.strftime('%H:%M')}\n"
+                f"Jam kerja: {jam_kerja:.1f} jam\n\n"
+                "Sampai jumpa!",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        
+        elif query.data == 'absensi_history':
+            absensis = db.query(Absensi).filter(
+                Absensi.employee_id == employee.id
+            ).order_by(Absensi.tanggal.desc()).limit(7).all()
+            
+            text = "RIWAYAT ABSENSI\n(7 Hari Terakhir)\n\n"
+            if absensis:
+                for abs in absensis:
+                    text += f"{abs.tanggal.strftime('%d/%m/%Y')}\n"
+                    text += f"  Masuk: {abs.waktu_masuk.strftime('%H:%M') if abs.waktu_masuk else '-'}\n"
+                    text += f"  Keluar: {abs.waktu_keluar.strftime('%H:%M') if abs.waktu_keluar else '-'}\n\n"
+            else:
+                text += "Belum ada data."
+            
+            keyboard = [[InlineKeyboardButton("Kembali", callback_data='main_menu')]]
+            await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(keyboard))
+        
+        elif query.data == 'cuti_menu':
+            keyboard = [
+                [InlineKeyboardButton("Status Cuti", callback_data='cuti_status')],
+                [InlineKeyboardButton("Kembali", callback_data='main_menu')]
+            ]
+            await query.edit_message_text("MENU CUTI\n\nPilih opsi:", reply_markup=InlineKeyboardMarkup(keyboard))
+        
+        elif query.data == 'cuti_status':
+            cutis = db.query(Cuti).filter(
+                Cuti.employee_id == employee.id
+            ).order_by(Cuti.created_at.desc()).limit(5).all()
+            
+            text = "RIWAYAT CUTI\n\n"
+            if cutis:
+                for cuti in cutis:
+                    emoji = {'pending': 'PENDING', 'approved': 'APPROVED', 'rejected': 'REJECTED'}.get(cuti.status, '?')
+                    text += f"{cuti.jenis_cuti.upper()}\n"
+                    text += f"  {cuti.tanggal_mulai.strftime('%d/%m')} - {cuti.tanggal_selesai.strftime('%d/%m')}\n"
+                    text += f"  Status: {emoji}\n\n"
+            else:
+                text += "Belum ada data."
+            
+            keyboard = [[InlineKeyboardButton("Kembali", callback_data='main_menu')]]
+            await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(keyboard))
+        
+        elif query.data == 'ai_mode':
+            context.user_data['ai_mode'] = True
+            await query.edit_message_text(
+                "ASISTEN AI BPKH\n\n"
+                "Silakan tanya apa saja!\n\n"
+                "Contoh:\n"
+                "- Bagaimana cara ajukan cuti?\n"
+                "- Kapan gaji dibayar?\n\n"
+                "Ketik /start untuk menu."
+            )
+        
+        elif query.data == 'info':
+            text = f"INFORMASI KARYAWAN\n\n"
+            text += f"Nama: {employee.nama}\n"
+            text += f"NIK: {employee.nik}\n"
+            text += f"Email: {employee.email}\n"
+            text += f"Jabatan: {employee.jabatan}\n"
+            text += f"Departemen: {employee.departemen}\n"
+            text += f"Status: {employee.status.upper()}"
+            
+            keyboard = [[InlineKeyboardButton("Kembali", callback_data='main_menu')]]
+            await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    finally:
+        db.close()
+
+async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get('ai_mode'):
+        user = update.effective_user
+        db = SessionLocal()
+        
+        try:
+            employee = db.query(Employee).filter(
+                Employee.telegram_user_id == user.id
+            ).first()
+            
+            if not employee:
+                return
+            
+            user_message = update.message.text
+            await update.message.chat.send_action("typing")
+            
+            # Use advanced RAG
+            rag_result = advanced_rag.chat(
+                query=user_message,
+                employee_id=employee.id,
+                user_id=user.id
+            )
+            
+            response_text = f"Asisten AI:\n\n{rag_result['response']}"
+            
+            # Add sources if available
+            if rag_result.get('sources'):
+                sources_str = ', '.join(rag_result['sources'])
+                response_text += f"\n\nSumber: {sources_str}"
+            
+            response_text += "\n\nKetik /start untuk menu."
+            
+            await update.message.reply_text(response_text)
+            
+        finally:
+            db.close()
+
+def main():
+    logger.info("Initializing database...")
+    init_db()
+    
+    logger.info("Creating application...")
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).connect_timeout(30).read_timeout(30).build()
+    
+    app.add_handler(CommandHandler('start', start_command))
+    app.add_handler(CommandHandler('register', register_command))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    
+    logger.info("Bot BPKH with ALL features!")
+    logger.info("Press Ctrl+C to stop")
+    
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == '__main__':
+    main()
